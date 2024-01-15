@@ -1,18 +1,24 @@
 import scrapy
 from  ..items import AnimeLoader, Anime
-from .cache_manager import CacheManager
 
 class AnimeScraper(scrapy.Spider):
     name = "AnimeScraper"
     start_urls = ["https://myanimelist.net/anime.php"]
-    search_characters = [".", "A", "B", "C", "D", "E", "F", "G", "H", "I","J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U","V", "W", "X", "Y", "Z"]
+    #search_characters = [".", "A", "B", "C", "D", "E", "F", "G", "H", "I","J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U","V", "W", "X", "Y", "Z"]
+
+    search_characters = ["A"]
 
     def __init__(self, *args, **kwargs):
         super(AnimeScraper, self).__init__(*args, **kwargs)
-        self.cache_manager = CacheManager()
-        self.cache_manager.load_cache()
+
 
     def parse(self, response):
+
+        """yield scrapy.Request(
+                    url="https://myanimelist.net/anime/52299/Ore_dake_Level_Up_na_Ken",
+                    callback=self.parse_anime_page
+                )"""
+        
         for character in self.search_characters:
             url_with_character = "https://myanimelist.net/anime.php?letter="+character
             
@@ -20,20 +26,15 @@ class AnimeScraper(scrapy.Spider):
                 url=url_with_character,
                 callback=self.parse_character_page
             )
+        
 
 
-            """
-            if not self.cache_manager.is_url_crawled("https://myanimelist.net/anime/52299/Ore_dake_Level_Up_na_Ken"):
-                yield scrapy.Request(
-                    url="https://myanimelist.net/anime/52299/Ore_dake_Level_Up_na_Ken",
-                    callback=self.parse_anime_page
-                )
-            else:
-                self.log(f"URL https://myanimelist.net/anime/52299/Ore_dake_Level_Up_na_Ken already crawled, skipping")
-            """
+
+    
     def parse_character_page(self, response):
 
-        max_page_number_str = response.xpath("//a[contains(@href, 'show')]/text()").getall()[-1]
+        #max_page_number_str = response.xpath("//a[contains(@href, 'show')]/text()").getall()[-1]
+        max_page_number_str = "1"
         try:
             max_page_number_int = int(max_page_number_str)
         except ValueError:
@@ -44,7 +45,7 @@ class AnimeScraper(scrapy.Spider):
 
             yield scrapy.Request(
                 url=url_with_page_number,
-                callback=self.parse_page_with_animes
+                callback=self.parse_page_with_animes,
             )
 
 
@@ -53,14 +54,11 @@ class AnimeScraper(scrapy.Spider):
         anime_page_urls = response.xpath("//div[@class='title']/a[re:match(@href, 'https:\S+\/anime\/[0-9]+\/\S+')]/@href").getall()
         for anime_url in anime_page_urls:
 
-            if not self.cache_manager.is_url_crawled(response.url):
                 yield scrapy.Request(
                     url=anime_url,
                     callback=self.parse_anime_page
                 )
-            else:
-                self.log(f"URL {response.url} already crawled, skipping")
-
+   
 
 
     def parse_anime_page(self, response):
@@ -104,7 +102,11 @@ class AnimeScraper(scrapy.Spider):
         anime_loader.add_xpath("popularity", "//div/*[starts-with(text(),'Popularity:')]/following-sibling::text()")
         anime_loader.add_xpath("members", "//div/*[starts-with(text(),'Members:')]/following-sibling::text()")
         anime_loader.add_xpath("favorites", "//div/*[starts-with(text(),'Favorites:')]/following-sibling::text()")
-        
+        anime_loader.add_xpath("cover_image", "//a[contains(@href,'pics')]/img/@data-src")
+
+        anime_loader.add_xpath("demographic", "//div/*[starts-with(text(),'Demographic:')]/following-sibling::*//text()")
+        anime_loader.add_xpath("demographic", "//div/*[starts-with(text(),'Demographic:')]/following-sibling::text()")
+
         endings = response.xpath("//div[h2[contains(.,'Ending Theme')]]/following-sibling::div/table//tr")
         for ending in range(1,len(endings)+1):
             #anime_loader.add_xpath("ending_themes", f"//div[h2[contains(.,'Ending Theme')]]/following-sibling::*//tr[{ending}]//span//text()")
@@ -118,5 +120,19 @@ class AnimeScraper(scrapy.Spider):
             anime_loader.add_xpath("opening_themes", f"//div[h2[contains(.,'Opening Theme')]]/following-sibling::div/table//tr[{opening}]//text()")
 
 
+        social_links = response.xpath("//h2[contains(.,'Available At')]/following-sibling::div[1]//a/@href").getall() 
+        for social_link in social_links:
+            if len(social_link) >1:
+                anime_loader.add_value("social_links", social_link)
+
+        resources_links = response.xpath("//h2[contains(.,'Resources')]/following-sibling::div[1]//a/@href").getall()
+        for resource_link in resources_links:
+            if len(resource_link) >1:
+                anime_loader.add_value("resources_links", resource_link)
+
+        streaming_links = response.xpath("//h2[contains(.,'Streaming Platforms')]/following-sibling::div[1]//a/@href").getall()
+        for streaming_link in streaming_links:
+                if len(streaming_link) >1:
+                    anime_loader.add_value("streaming_links", streaming_link)
+            
         yield anime_loader.load_item()
-        self.cache_manager.mark_url_as_crawled(response.url)

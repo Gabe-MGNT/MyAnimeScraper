@@ -28,7 +28,7 @@ ROBOTSTXT_OBEY = False
 # See https://docs.scrapy.org/en/latest/topics/settings.html#download-delay
 # See also autothrottle settings and docs
 
-DOWNLOAD_DELAY = 8
+DOWNLOAD_DELAY = 12
 # The download delay setting will honor only one of:
 #CONCURRENT_REQUESTS_PER_DOMAIN = 16
 #CONCURRENT_REQUESTS_PER_IP = 16
@@ -48,7 +48,8 @@ DOWNLOAD_DELAY = 8
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 SPIDER_MIDDLEWARES = {
-    "anime_scraper.middlewares.AnimeScraperSpiderMiddleware": 543,
+    #"anime_scraper.middlewares.AnimeScraperSpiderMiddleware": 543,
+    "anime_scraper.middlewares.DuplicatesMiddleware": 543,
 }
 
 

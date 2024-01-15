@@ -4,10 +4,11 @@
 # https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
 from scrapy import signals
-
+import pickle
 # useful for handling different item types with a single interface
 from itemadapter import is_item, ItemAdapter
-
+from scrapy.exceptions import IgnoreRequest
+from scrapy.utils.request import fingerprint
 
 class AnimeScraperSpiderMiddleware:
     # Not all methods need to be defined. If a method is not defined,
@@ -101,3 +102,64 @@ class AnimeScraperDownloaderMiddleware:
 
     def spider_opened(self, spider):
         spider.logger.info("Spider opened: %s" % spider.name)
+
+import logging
+from scrapy.item import Item
+logger = logging.getLogger(__name__)
+from scrapy.http import Request
+
+class DuplicatesMiddleware:
+
+    def __init__(self):
+        self.cache_file = "visited_links"
+        self.visited_links = set()
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        s = cls()
+        crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
+        crawler.signals.connect(s.spider_closed, signal=signals.spider_closed)
+        return s
+
+    def spider_opened(self, spider):
+        spider.logger.info("Spider opened: %s" % spider.name)
+        try:
+            with open("{}.pkl".format(self.cache_file), "rb") as file:
+                self.visited_links = pickle.load(file)
+                print("Loaded {} visited links".format(len(self.visited_links)))
+        except FileNotFoundError:
+            self.visited_links = set()
+
+    def spider_closed(self, spider):
+        spider.logger.info("Storing all visited links")
+        print(self.visited_links)
+        try:
+            with open("{}.pkl".format(self.cache_file), 'wb') as f:
+                pickle.dump(self.visited_links, f)
+        except Exception as e:
+            raise(e)
+        
+        spider.logger.info("All links have been put in file")
+        spider.logger.info("Spider closed: %s" % spider.name)
+
+    
+
+    
+    def process_spider_output(self, response, result, spider):
+        # Called with the results returned from the Spider, after
+        # it has processed the response.
+
+        # Must return an iterable of Request, or item objects.
+        for i in result:
+            if isinstance(i, Request):
+                if i.url in self.visited_links:
+                    spider.logger.info("\nIgnoring already visited: %s\n" % i.url)
+                    continue
+            elif isinstance(i, Item):
+                self.visited_links.add(response.request.url)
+            yield i
+
+    
+
+
+        
