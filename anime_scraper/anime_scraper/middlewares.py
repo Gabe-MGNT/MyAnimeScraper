@@ -152,11 +152,17 @@ class DuplicatesMiddleware:
         # Must return an iterable of Request, or item objects.
         for i in result:
             if isinstance(i, Request):
+
                 if i.url in self.visited_links:
                     spider.logger.info("\nIgnoring already visited: %s\n" % i.url)
                     continue
+
+
+
             elif isinstance(i, Item):
                 self.visited_links.add(response.request.url)
+
+ 
             yield i
 
     

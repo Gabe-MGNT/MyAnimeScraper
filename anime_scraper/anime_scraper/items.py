@@ -52,12 +52,30 @@ class Anime(scrapy.Item):
     members = scrapy.Field()
     favorites = scrapy.Field()
 
+def remove_no_opening_themes(value):
+    if value.startswith("No opening themes"):
+        return ""
+    return value
+
+def remove_no_ending_themes(value):
+    if value.startswith("No ending themes"):
+        return ""
+    return value
+
+
+def remove_no_synopsis(value):
+    if value.startswith("No synopsis information"):
+        return ""
+    return value
 
 class AnimeLoader(ItemLoader):
     default_output_processor = MapCompose(str.strip, 
                                           lambda x:re.sub('\\n|\\r', '', x), 
                                           lambda x:re.sub("\s{2,}", " ", x), 
                                           lambda x:x.replace('"' ,"'"),
+                                          lambda x: remove_no_ending_themes(x),
+                                          lambda x: remove_no_synopsis(x),
+                                          lambda x:remove_no_opening_themes(x),
                                           lambda x: None if re.sub(r'^$|^,$|add some|None\s*found.', '', x) == '' else x)
 
     airing_date_in = TakeFirst()
@@ -83,8 +101,10 @@ class AnimeLoader(ItemLoader):
     status_in = TakeFirst()
     score_in = TakeFirst()
     opening_themes_in = Join()
+
     ending_themes_in = Join()
 
     synopsis_in = Join()
+
     type_in = TakeFirst()
 

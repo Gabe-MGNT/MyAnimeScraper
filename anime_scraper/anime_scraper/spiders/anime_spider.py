@@ -4,9 +4,7 @@ from  ..items import AnimeLoader, Anime
 class AnimeScraper(scrapy.Spider):
     name = "AnimeScraper"
     start_urls = ["https://myanimelist.net/anime.php"]
-    #search_characters = [".", "A", "B", "C", "D", "E", "F", "G", "H", "I","J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U","V", "W", "X", "Y", "Z"]
-
-    search_characters = ["A"]
+    search_characters = [".", "A", "B", "C", "D", "E", "F", "G", "H", "I","J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U","V", "W", "X", "Y", "Z"]
 
     def __init__(self, *args, **kwargs):
         super(AnimeScraper, self).__init__(*args, **kwargs)
@@ -33,8 +31,8 @@ class AnimeScraper(scrapy.Spider):
     
     def parse_character_page(self, response):
 
-        #max_page_number_str = response.xpath("//a[contains(@href, 'show')]/text()").getall()[-1]
-        max_page_number_str = "1"
+        max_page_number_str = response.xpath("//a[contains(@href, 'show')]/text()").getall()[-1]
+
         try:
             max_page_number_int = int(max_page_number_str)
         except ValueError:
@@ -48,17 +46,17 @@ class AnimeScraper(scrapy.Spider):
                 callback=self.parse_page_with_animes,
             )
 
-
             
     def parse_page_with_animes(self, response):
         anime_page_urls = response.xpath("//div[@class='title']/a[re:match(@href, 'https:\S+\/anime\/[0-9]+\/\S+')]/@href").getall()
-        for anime_url in anime_page_urls:
 
-                yield scrapy.Request(
-                    url=anime_url,
-                    callback=self.parse_anime_page
-                )
-   
+        number_anime_on_page = len(anime_page_urls)
+        for index, anime_url in enumerate(anime_page_urls):
+
+                    yield scrapy.Request(
+                        url=anime_url,
+                        callback=self.parse_anime_page,
+                    )
 
 
     def parse_anime_page(self, response):
@@ -135,4 +133,4 @@ class AnimeScraper(scrapy.Spider):
                 if len(streaming_link) >1:
                     anime_loader.add_value("streaming_links", streaming_link)
             
-        yield anime_loader.load_item()
+        return anime_loader.load_item()
