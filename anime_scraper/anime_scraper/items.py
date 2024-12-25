@@ -72,7 +72,7 @@ def remove_no_synopsis(value):
 
 def clean_dict(value):
     value = value[0]
-    replacement_dict = {}
+    replacement_dict = []
 
     for key, value in value.items():
         key_cleaned = re.sub('\\n|\\r', '', key)
@@ -81,19 +81,19 @@ def clean_dict(value):
         key_cleaned = key_cleaned.strip()
 
         if isinstance(value, list):
-            list_cleaned = []
+            list_cleaned = ""
             for list_value in value:
                 list_value_cleaned = re.sub('\\n|\\r', '', list_value)
                 list_value_cleaned = re.sub("\s{2,}", " ", list_value_cleaned)
                 list_value_cleaned = list_value_cleaned.strip()
-                list_cleaned.append(list_value_cleaned)
-            replacement_dict[key_cleaned] = list_cleaned
+                list_cleaned += list_value_cleaned + ' ; '
+            replacement_dict.append(key_cleaned + " - (" + list_cleaned + ")")
             continue
         else:
             value_cleaned = re.sub('\\n|\\r', '', value)
             value_cleaned = re.sub("\s{2,}", " ", value_cleaned)
             value_cleaned = value_cleaned.strip()
-            replacement_dict[key_cleaned] = value_cleaned 
+            replacement_dict.append(key_cleaned + ' - ('+value_cleaned+')')
             continue
 
     print("dict cleaned :", replacement_dict)
@@ -101,14 +101,14 @@ def clean_dict(value):
 
 class AnimeLoader(ItemLoader):
     default_output_processor = MapCompose(
-                                          lambda x: x.strip() if isinstance(x, str) else x,
-                                          lambda x:re.sub('\\n|\\r', '', x) if isinstance(x, str) else x, 
-                                          lambda x:re.sub("\s{2,}", " ", x) if isinstance(x, str) else x, 
-                                          lambda x:x.replace('"' ,"'") if isinstance(x, str) else x,
-                                          lambda x: remove_no_ending_themes(x) if isinstance(x, str) else x,
-                                          lambda x: remove_no_synopsis(x) if isinstance(x, str) else x,
-                                          lambda x:remove_no_opening_themes(x) if isinstance(x, str) else x,
-                                          lambda x: None if isinstance(x, str) and re.sub(r'^$|^,$|add some|None\s*found.', '', x) == '' else x
+                                          lambda x: x.strip(),
+                                          lambda x:re.sub('\\n|\\r', '', x), 
+                                          lambda x:re.sub("\s{2,}", " ", x), 
+                                          lambda x:x.replace('"' ,"'"),
+                                          lambda x: remove_no_ending_themes(x),
+                                          lambda x: remove_no_synopsis(x),
+                                          lambda x:remove_no_opening_themes(x),
+                                          lambda x: None if re.sub(r'^$|^,$|add some|None\s*found.', '', x) == '' else x
                                           )
 
     airing_date_in = TakeFirst()
@@ -141,6 +141,6 @@ class AnimeLoader(ItemLoader):
 
     type_in = TakeFirst()
 
-    related_entries_in = Compose(clean_dict)
+    related_entries_in = Compose(clean_dict, Join(' | '))
 
 
