@@ -5,7 +5,7 @@ from scrapy.utils.project import get_project_settings
 
 def main():
     settings = get_project_settings()
-    settings['FEED_URI'] = 'test2.csv'
+    settings['FEED_URI'] = 'test3.csv'
     settings['FEED_FORMAT'] = 'csv'
     process = CrawlerProcess(settings=settings)
     process.crawl(AnimeScraper)

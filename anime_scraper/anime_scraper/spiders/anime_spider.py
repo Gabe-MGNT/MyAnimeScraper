@@ -12,12 +12,14 @@ class AnimeScraper(scrapy.Spider):
 
     def parse(self, response):
 
+        """
         yield scrapy.Request(
                     url="https://myanimelist.net/anime/52299/Ore_dake_Level_Up_na_Ken",
                     callback=self.parse_anime_page
                 )
-        
         """
+        
+        
         for letter in self.search_letters:
             url_with_character = f"https://myanimelist.net/anime.php?letter={letter}"
             
@@ -25,7 +27,7 @@ class AnimeScraper(scrapy.Spider):
                 url=url_with_character,
                 callback=self.parse_letter_page
             )
-        """
+        
         
 
 
@@ -133,7 +135,6 @@ class AnimeScraper(scrapy.Spider):
                 continue
             relations_dict[relation] = link
 
-        print(relations_dict)
         anime_loader.add_value("related_entries", relations_dict)
 
 
@@ -152,7 +153,10 @@ class AnimeScraper(scrapy.Spider):
         # STREAMING LINKS
         streaming_links = response.xpath("//h2[contains(.,'Streaming Platforms')]/following-sibling::div[1]//a/@href").getall()
         for streaming_link in streaming_links:
+                if 'javascript' in streaming_link:
+                    continue
                 if len(streaming_link) >1:
                     anime_loader.add_value("streaming_links", streaming_link)
+                
             
         return anime_loader.load_item()
